@@ -1,0 +1,371 @@
+// Prisma schema — Hangout backend
+// All 14 PRD entities: User, Friend, Hangout, Participant, Place, Vote,
+// Message, Notification, Photo, LocationSession, Review, Badge, Interest, Category.
+// SQLite used for local dev; Postgres for prod (swap the datasource URL).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── Enums ────────────────────────────────────────────────
+
+enum Visibility {
+  PRIVATE
+  FRIENDS_ONLY
+  PUBLIC
+}
+
+enum ParticipantStatus {
+  INVITED
+  JOINED
+  DECLINED
+}
+
+enum AttendanceStatus {
+  NOT_STARTED
+  ON_THE_WAY
+  RUNNING_LATE
+  ARRIVED
+}
+
+enum SharingMode {
+  NONE
+  ETA_ONLY
+  LIVE
+}
+
+enum NotificationType {
+  FRIEND_JOINED
+  FRIEND_DECLINED
+  EVENT_REMINDER
+  VOTE_REMINDER
+  RUNNING_LATE
+  FRIEND_ARRIVED
+  NEW_CHAT_MESSAGE
+  EVENT_CANCELLED
+  FRIEND_REQUEST
+  HANGOUT_INVITE
+}
+
+enum BadgeKey {
+  EXPLORER
+  CAFE_HUNTER
+  FOODIE
+  WEEKEND_WARRIOR
+  ORGANIZER
+  EARLY_BIRD
+}
+
+// ── Core: User ───────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String?
+  googleId      String?   @unique
+  appleId       String?   @unique
+  username      String    @unique
+  displayName   String
+  bio           String?
+  avatarUrl     String?
+  verified      Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  friends          Friend[]      @relation("UserFriends")
+  friendOf         Friend[]      @relation("FriendOf")
+  sentRequests     FriendRequest[] @relation("SentRequests")
+  receivedRequests FriendRequest[] @relation("ReceivedRequests")
+  hangoutsJoined   Participant[]
+  hangoutsHosted   Hangout[]     @relation("Host")
+  votes            Vote[]
+  messages         Message[]
+  notifications    Notification[]
+  locationSessions LocationSession[]
+  reviews          Review[]
+  reviewsLiked     ReviewLike[]
+  badges           UserBadge[]
+  interests        UserInterest[]
+  favoritePlaces   FavoritePlace[]
+  invitations      HangoutInvite[]
+  memories         Memory[]
+  memoryReactions  MemoryReaction[]
+}
+
+// Friends (mutual, confirmed via FriendRequest)
+model Friend {
+  id        String   @id @default(cuid())
+  userId    String
+  friendId  String
+  createdAt DateTime @default(now())
+
+  user   User @relation("UserFriends", fields: [userId], references: [id])
+    friend User @relation("FriendOf", fields: [friendId], references: [id])
+
+  @@unique([userId, friendId])
+}
+
+model FriendRequest {
+  id        String   @id @default(cuid())
+  senderId  String
+  recipientId String
+  status    String   @default("PENDING") // PENDING | ACCEPTED | DECLINED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sender    User @relation("SentRequests", fields: [senderId], references: [id])
+  recipient User @relation("ReceivedRequests", fields: [recipientId], references: [id])
+
+  @@unique([senderId, recipientId])
+}
+
+// ── Places & reviews ────────────────────────────────────
+
+model Place {
+  id          String   @id @default(cuid())
+  googlePlaceId String? @unique
+  name        String
+  category    String   // Cafe | Food | Shopping | Sports | Gaming | ...
+  address     String
+  lat         Float
+  lng         Float
+  rating      Float    @default(0)
+  reviewCount Int      @default(0)
+  priceLevel  Int?     // 1..4
+  photoUrl    String?
+  openHours   String?
+  createdAt   DateTime @default(now())
+
+  hangouts     Hangout[]
+  votes        Vote[]
+  reviews      Review[]
+  favorites    FavoritePlace[]
+}
+model Review {
+  id        String   @id @default(cuid())
+  placeId   String
+  authorId  String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  place  Place @relation(fields: [placeId], references: [id])
+  author User  @relation(fields: [authorId], references: [id])
+  likes  ReviewLike[]
+
+  @@unique([placeId, authorId])
+}
+
+model ReviewLike {
+  id       String   @id @default(cuid())
+  reviewId String
+  userId   String
+  createdAt DateTime @default(now())
+
+  review Review @relation(fields: [reviewId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([reviewId, userId])
+}
+
+// ── Hangouts: the core domain ───────────────────────────
+
+model Hangout {
+  id           String     @id @default(cuid())
+  title        String
+  description  String?
+  startsAt     DateTime
+  durationMin  Int        @default(120)
+  destinationId String?
+  visibility   Visibility @default(PRIVATE)
+  maxParticipants Int?
+  category     String?
+  hostId       String
+  createdAt    DateTime   @default(now())
+
+  destination  Place?      @relation(fields: [destinationId], references: [id])
+  host         User        @relation("Host", fields: [hostId], references: [id])
+  participants Participant[]
+  votes        Vote[]
+  messages     Message[]
+  invites      HangoutInvite[]
+  memories     Memory[]
+  locationSessions LocationSession[]
+}
+
+model Participant {
+  id        String             @id @default(cuid())
+  hangoutId String
+  userId    String
+  status    ParticipantStatus  @default(INVITED)
+  attendance AttendanceStatus  @default(NOT_STARTED)
+  sharing   SharingMode        @default(NONE)
+  lastLat   Float?
+  lastLng   Float?
+  updatedAt DateTime           @updatedAt
+  createdAt DateTime           @default(now())
+
+  hangout Hangout @relation(fields: [hangoutId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([hangoutId, userId])
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  hangoutId String
+  placeId   String
+  userId    String
+  weight    Int      @default(1)
+  createdAt DateTime @default(now())
+
+  hangout Hangout @relation(fields: [hangoutId], references: [id])
+  place   Place   @relation(fields: [placeId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([hangoutId, placeId, userId])
+}
+
+model HangoutInvite {
+  id        String   @id @default(cuid())
+  hangoutId String
+  userId    String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  hangout Hangout @relation(fields: [hangoutId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([hangoutId, userId])
+}
+
+// ── Chat ────────────────────────────────────────────────
+
+model Message {
+  id        String   @id @default(cuid())
+  hangoutId String
+  authorId  String
+  body      String
+  kind      String   @default("TEXT") // TEXT | IMAGE | REACTION | POLL | LOCATION | SYSTEM
+  createdAt DateTime @default(now())
+
+  hangout Hangout @relation(fields: [hangoutId], references: [id])
+  author  User    @relation(fields: [authorId], references: [id])
+}
+
+// ── Live location ───────────────────────────────────────
+
+model LocationSession {
+  id        String   @id @default(cuid())
+  hangoutId String
+  userId    String
+  mode      SharingMode @default(LIVE)
+  lat       Float
+  lng       Float
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+
+  hangout Hangout @relation(fields: [hangoutId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([hangoutId])
+}
+
+// ── Memories ────────────────────────────────────────────
+
+model Memory {
+  id        String   @id @default(cuid())
+  hangoutId String
+  authorId  String
+  kind      String   @default("PHOTO") // PHOTO | VIDEO
+  url       String
+  caption   String?
+  createdAt DateTime @default(now())
+
+  hangout  Hangout        @relation(fields: [hangoutId], references: [id])
+  author   User           @relation(fields: [authorId], references: [id])
+  reactions MemoryReaction[]
+}
+
+model MemoryReaction {
+  id       String   @id @default(cuid())
+  memoryId String
+  userId   String
+  kind     String   @default("LIKE")
+  createdAt DateTime @default(now())
+
+  memory Memory @relation(fields: [memoryId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([memoryId, userId])
+}
+
+// ── Notifications ───────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  payload   Json?
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ── Badges & interests ─────────────────────────────────
+
+model Badge {
+  id       String   @id @default(cuid())
+  key      BadgeKey @unique
+  name     String
+  emoji    String?
+  description String?
+
+  users UserBadge[]
+}
+
+model UserBadge {
+  userId  String
+  badgeId String
+  earnedAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  badge Badge @relation(fields: [badgeId], references: [id])
+
+  @@id([userId, badgeId])
+}
+
+model Interest {
+  id    String @id @default(cuid())
+  name  String @unique
+
+  users UserInterest[]
+}
+
+model UserInterest {
+  userId     String
+  interestId String
+
+  user     User     @relation(fields: [userId], references: [id])
+  interest Interest @relation(fields: [interestId], references: [id])
+
+  @@id([userId, interestId])
+}
+
+model FavoritePlace {
+  id        String   @id @default(cuid())
+  userId    String
+  placeId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  place Place @relation(fields: [placeId], references: [id])
+
+  @@unique([userId, placeId])
+}
