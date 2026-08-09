@@ -1,6 +1,5 @@
-// Vercel serverless entry — thin wrapper around the compiled Nest app.
-// Imports from dist/ (tsc-compiled) so decorator metadata is preserved
-// (Vercel's esbuild does not emit NestJS DI metadata).
-import handler from '../dist/src/lambda';
+// Vercel serverless entry for the NestJS app.
+// @vercel/node compiles this TypeScript entry and follows src imports.
+import handler from '../src/lambda';
 
 export default handler;

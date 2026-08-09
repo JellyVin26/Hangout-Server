@@ -21,7 +21,9 @@
     "prepare:vercel": "node scripts/prepare-vercel.js",
     "db:push:vercel": "npx prisma db push --schema prisma/schema.postgres.prisma",
     "seed:vercel": "npx tsx prisma/seed.ts",
-    "seed": "npx tsx prisma/seed.ts"
+    "seed": "npx tsx prisma/seed.ts",
+    "postinstall": "node scripts/postinstall.js",
+    "build:vercel": "node scripts/prepare-vercel.js"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
