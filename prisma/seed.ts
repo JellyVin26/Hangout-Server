@@ -115,7 +115,8 @@ async function main() {
     data: {
       title: 'Coffee & Catch Up',
       description: 'Catching up over pour-over at Ember & Oak. Come hungry for pastries.',
-      startsAt: new Date(Date.now() + 3 * 3600_000),
+      // Keep demo event safely in the future after deploys.
+      startsAt: new Date(Date.now() + 3 * 24 * 3600_000),
       durationMin: 90,
       destinationId: placeRows[0].id,
       visibility: 'FRIENDS_ONLY',
