@@ -1,7 +1,11 @@
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INestApplication } from '@nestjs/common';
 
-/** Sets up Swagger docs with CDN assets (serverless-safe: Nest-served static files 404 behind Vercel rewrites). */
+/**
+ * Registers the OpenAPI JSON document at /docs-json.
+ * The /docs HTML page is served by SwaggerController (CDN-loaded Swagger UI,
+ * avoiding 404s on Nest-served static assets in serverless environments).
+ */
 export function setupSwagger(app: INestApplication) {
   const config = new DocumentBuilder()
     .setTitle('Hangout API')
@@ -10,11 +14,8 @@ export function setupSwagger(app: INestApplication) {
     .addBearerAuth()
     .build();
   const doc = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, doc, {
-    customCssUrl: 'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css',
-    customJs: [
-      'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js',
-      'https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-standalone-preset.js',
-    ],
+  // Register only the JSON document endpoint — the HTML page is handled by SwaggerController
+  SwaggerModule.setup('docs-json', app, doc, {
+    swaggerOptions: { persistAuthorization: true },
   });
 }

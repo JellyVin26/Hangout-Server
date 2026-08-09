@@ -12,6 +12,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { MemoriesModule } from './memories/memories.module';
 import { DiscoveryModule } from './discovery/discovery.module';
 import { AppController } from './app.controller';
+import { SwaggerController } from './swagger.controller';
 
 @Module({
   imports: [
@@ -28,6 +29,6 @@ import { AppController } from './app.controller';
     MemoriesModule,
     DiscoveryModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, SwaggerController],
 })
 export class AppModule {}
