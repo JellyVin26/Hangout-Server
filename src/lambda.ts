@@ -1,11 +1,11 @@
 import { NestFactory } from '@nestjs/core';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import express from 'express';
 import { AppModule } from './app.module';
 import { GlobalAuthGuard } from './common/global-auth.guard';
+import { setupSwagger } from './swagger';
 
 let cachedApp: INestApplication | null = null;
 
@@ -18,16 +18,7 @@ async function createApp() {
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalGuards(new GlobalAuthGuard(app.get(Reflector)));
-
-  // Swagger docs
-  const config = new DocumentBuilder()
-    .setTitle('Hangout API')
-    .setDescription('The social planning & meetup backend')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const doc = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, doc);
+  setupSwagger(app);
 
   await app.init();
   cachedApp = app;

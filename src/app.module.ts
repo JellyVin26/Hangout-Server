@@ -11,6 +11,7 @@ import { LiveModule } from './live/live.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MemoriesModule } from './memories/memories.module';
 import { DiscoveryModule } from './discovery/discovery.module';
+import { AppController } from './app.controller';
 
 @Module({
   imports: [
@@ -27,5 +28,6 @@ import { DiscoveryModule } from './discovery/discovery.module';
     MemoriesModule,
     DiscoveryModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}
