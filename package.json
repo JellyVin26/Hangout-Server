@@ -26,7 +26,6 @@
     "build:vercel": "node scripts/prepare-vercel.js"
   },
   "dependencies": {
-    "@googlemaps/google-maps-services-js": "^3.4.2",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",
