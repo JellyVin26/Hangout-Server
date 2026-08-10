@@ -39,7 +39,6 @@ export class PlacesController {
       take: takeNum,
     });
 
-    // Enrich with Google Places when a query is present and the API key is wired up.
     if (q && process.env.GOOGLE_MAPS_API_KEY) {
       try {
         const google = await this.discovery.search(q, latNum, lngNum, takeNum);
@@ -59,7 +58,6 @@ export class PlacesController {
         }
         return merged.slice(0, takeNum);
       } catch {
-        // Local-only fallback when Google is unreachable.
         return local;
       }
     }
@@ -74,19 +72,15 @@ export class PlacesController {
     return place;
   }
 
-  /** Proxy Google photo bytes so the API key never reaches the client. */
   @Get('google/photo')
   @ApiOperation({ summary: 'Google Places photo proxy' })
   @HttpCode(HttpStatus.OK)
-  async photo(@Query('ref') ref: string, @Res() res: Response) {
-    if (!ref) throw new NotFoundException('Missing ref');
+  async photo(@Query('name') name: string, @Res() res: Response) {
+    if (!name) throw new NotFoundException('Missing name');
     if (!process.env.GOOGLE_MAPS_API_KEY) {
       throw new InternalServerErrorException('Google Maps API key not configured');
     }
-    const url = new URL('https://maps.googleapis.com/maps/api/place/photo');
-    url.searchParams.set('key', process.env.GOOGLE_MAPS_API_KEY);
-    url.searchParams.set('photoreference', ref);
-    url.searchParams.set('maxwidth', '800');
+    const url = `https://places.googleapis.com/v1/${name}/media?key=${process.env.GOOGLE_MAPS_API_KEY}&maxWidthPx=800`;
     const upstream = await fetch(url);
     if (!upstream.ok) throw new NotFoundException('Photo not available');
     res.setHeader('Content-Type', upstream.headers.get('Content-Type') ?? 'image/jpeg');
