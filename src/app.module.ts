@@ -11,6 +11,7 @@ import { LiveModule } from './live/live.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { MemoriesModule } from './memories/memories.module';
 import { DiscoveryModule } from './discovery/discovery.module';
+import { UploadsModule } from './uploads/uploads.module';
 import { AppController } from './app.controller';
 import { SwaggerController } from './swagger.controller';
 
@@ -28,6 +29,7 @@ import { SwaggerController } from './swagger.controller';
     NotificationsModule,
     MemoriesModule,
     DiscoveryModule,
+    UploadsModule,
   ],
   controllers: [AppController, SwaggerController],
 })

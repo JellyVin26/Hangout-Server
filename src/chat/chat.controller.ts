@@ -16,7 +16,13 @@ export class ChatController {
 
   @Post(':hangoutId/messages')
   @ApiOperation({ summary: 'Send a message (fallback if socket unavailable)' })
-  send(@Req() req: any, @Param('hangoutId') hangoutId: string, @Body('body') body: string, @Body('kind') kind = 'TEXT') {
-    return this.chat.create(req.user.userId, hangoutId, { body, kind });
+  send(
+    @Req() req: any,
+    @Param('hangoutId') hangoutId: string,
+    @Body('body') body: string,
+    @Body('kind') kind = 'TEXT',
+    @Body('mediaUrl') mediaUrl?: string,
+  ) {
+    return this.chat.create(req.user.userId, hangoutId, { body, kind, mediaUrl });
   }
 }

@@ -94,6 +94,7 @@ model User {
   favoritePlaces   FavoritePlace[]
   invitations      HangoutInvite[]
   memories         Memory[]
+  uploads          Upload[]
   memoryReactions  MemoryReaction[]
 }
 
@@ -252,6 +253,7 @@ model Message {
   authorId  String
   body      String
   kind      String   @default("TEXT") // TEXT | IMAGE | REACTION | POLL | LOCATION | SYSTEM
+  mediaUrl  String?
   createdAt DateTime @default(now())
 
   hangout Hangout @relation(fields: [hangoutId], references: [id])
@@ -303,6 +305,24 @@ model MemoryReaction {
   user   User   @relation(fields: [userId], references: [id])
 
   @@unique([memoryId, userId])
+}
+
+// ── User uploads (serverless-friendly base64 in DB) ─────
+
+model Upload {
+  id         String   @id @default(cuid())
+  ownerId    String
+  kind       String   // PHOTO | AVATAR | MEMORY
+  mime       String
+  bytes      Bytes
+  url        String   // canonical `/media/:id` URL
+  width      Int?
+  height     Int?
+  createdAt  DateTime @default(now())
+
+  owner User @relation(fields: [ownerId], references: [id])
+
+  @@index([ownerId, createdAt])
 }
 
 // ── Notifications ───────────────────────────────────────

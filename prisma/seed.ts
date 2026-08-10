@@ -16,12 +16,12 @@ const USERS = [
 ];
 
 const PLACES = [
-  { name: 'Ember & Oak', category: 'Cafe', address: '14 Riverside Walk', lat: 1.2904, lng: 103.8522, rating: 4.8, reviewCount: 212, priceLevel: 2, photoUrl: '/img/cafe-ember.jpg', openHours: '7 AM - 10 PM' },
-  { name: 'Neon Arcade', category: 'Gaming', address: '88 Circuit Lane', lat: 1.2931, lng: 103.8555, rating: 4.6, reviewCount: 168, priceLevel: 2, photoUrl: '/img/arcade-neon.jpg', openHours: '11 AM - 2 AM' },
-  { name: 'Harbor Ramen', category: 'Food', address: '33 Quay Street', lat: 1.2869, lng: 103.8508, rating: 4.7, reviewCount: 340, priceLevel: 2, photoUrl: '/img/ramen-harbor.jpg', openHours: '11 AM - 11 PM' },
-  { name: 'Summit Trailhead', category: 'Hiking', address: 'Bukit Vista Road', lat: 1.3012, lng: 103.8461, rating: 4.5, reviewCount: 95, priceLevel: 1, photoUrl: '/img/trail-summit.jpg', openHours: '5 AM - 7 PM' },
-  { name: 'Velvet Rooftop', category: 'Nightlife', address: '21 Skyline Ave', lat: 1.2958, lng: 103.8583, rating: 4.4, reviewCount: 280, priceLevel: 3, photoUrl: '/img/rooftop-velvet.jpg', openHours: '5 PM - 3 AM' },
-  { name: 'Canvas & Clay', category: 'Study', address: '5 Artisan Row', lat: 1.2884, lng: 103.8497, rating: 4.3, reviewCount: 120, priceLevel: 1, photoUrl: '/img/study-canvas.jpg', openHours: '8 AM - 11 PM' },
+  { name: 'Ember & Oak', category: 'Cafe', address: '14 Riverside Walk', lat: 1.2904, lng: 103.8522, rating: 4.8, reviewCount: 212, priceLevel: 2, photoUrl: 'https://picsum.photos/seed/ember-oak-cafe/800/600', openHours: '7 AM - 10 PM' },
+  { name: 'Neon Arcade', category: 'Gaming', address: '88 Circuit Lane', lat: 1.2931, lng: 103.8555, rating: 4.6, reviewCount: 168, priceLevel: 2, photoUrl: 'https://picsum.photos/seed/neon-arcade/800/600', openHours: '11 AM - 2 AM' },
+  { name: 'Harbor Ramen', category: 'Food', address: '33 Quay Street', lat: 1.2869, lng: 103.8508, rating: 4.7, reviewCount: 340, priceLevel: 2, photoUrl: 'https://picsum.photos/seed/harbor-ramen/800/600', openHours: '11 AM - 11 PM' },
+  { name: 'Summit Trailhead', category: 'Hiking', address: 'Bukit Vista Road', lat: 1.3012, lng: 103.8461, rating: 4.5, reviewCount: 95, priceLevel: 1, photoUrl: 'https://picsum.photos/seed/summit-trail/800/600', openHours: '5 AM - 7 PM' },
+  { name: 'Velvet Rooftop', category: 'Nightlife', address: '21 Skyline Ave', lat: 1.2958, lng: 103.8583, rating: 4.4, reviewCount: 280, priceLevel: 3, photoUrl: 'https://picsum.photos/seed/velvet-rooftop/800/600', openHours: '5 PM - 3 AM' },
+  { name: 'Canvas & Clay', category: 'Study', address: '5 Artisan Row', lat: 1.2884, lng: 103.8497, rating: 4.3, reviewCount: 120, priceLevel: 1, photoUrl: 'https://picsum.photos/seed/canvas-clay/800/600', openHours: '8 AM - 11 PM' },
 ];
 
 const BADGES: { key: 'EXPLORER' | 'CAFE_HUNTER' | 'FOODIE' | 'WEEKEND_WARRIOR' | 'ORGANIZER' | 'EARLY_BIRD'; name: string; emoji: string; description: string }[] = [
@@ -41,6 +41,7 @@ async function main() {
   // ── idempotent: wipe existing data ──
   await prisma.memoryReaction.deleteMany();
   await prisma.memory.deleteMany();
+  await prisma.upload.deleteMany();
   await prisma.message.deleteMany();
   await prisma.vote.deleteMany();
   await prisma.hangoutInvite.deleteMany();

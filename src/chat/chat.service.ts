@@ -26,7 +26,7 @@ export class ChatService {
     });
   }
 
-  async create(userId: string, hangoutId: string, payload: MsgPayload) {
+  async create(userId: string, hangoutId: string, payload: MsgPayload & { mediaUrl?: string }) {
     const hangout = await this.prisma.hangout.findUnique({
       where: { id: hangoutId },
       select: { participants: { where: { userId } } },
@@ -40,6 +40,7 @@ export class ChatService {
         authorId: userId,
         body: payload.body,
         kind: payload.kind,
+        mediaUrl: payload.mediaUrl,
       },
       include: { author: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
     });
