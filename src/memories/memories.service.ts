@@ -4,10 +4,14 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class MemoriesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   list(hangoutId: string) {
     return this.prisma.memory.findMany({
@@ -20,12 +24,19 @@ export class MemoriesService {
     });
   }
 
-  create(
+  async create(
     userId: string,
     hangoutId: string,
     data: { url: string; caption?: string; kind?: string },
   ) {
-    return this.prisma.memory.create({
+    // Load participants so we can notify the others
+    const hangout = await this.prisma.hangout.findUnique({
+      where: { id: hangoutId },
+      select: { id: true, title: true, participants: { select: { userId: true } } },
+    });
+    if (!hangout) throw new NotFoundException('Hangout not found');
+
+    const mem = await this.prisma.memory.create({
       data: {
         hangoutId,
         authorId: userId,
@@ -38,6 +49,18 @@ export class MemoriesService {
         _count: { select: { reactions: true } },
       },
     });
+
+    for (const p of hangout.participants) {
+      if (p.userId !== userId) {
+        await this.notifications.notify(
+          p.userId,
+          'NEW_CHAT_MESSAGE',
+          { hangoutId, memoryId: mem.id, authorId: userId },
+          { title: 'New memory', body: `${mem.author?.displayName ?? 'Someone'} added a photo to ${hangout.title}` },
+        );
+      }
+    }
+    return mem;
   }
 
   async toggleLike(userId: string, memoryId: string) {

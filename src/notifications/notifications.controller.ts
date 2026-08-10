@@ -1,30 +1,28 @@
-import { Controller, Get, Param, Post, Req } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Delete, Get, Post, Req } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 
-@ApiBearerAuth()
-@ApiTags('notifications')
 @Controller('notifications')
 export class NotificationsController {
-  constructor(private readonly notificationsService: NotificationsService) {}
+  constructor(private readonly notifications: NotificationsService) {}
+
+  @Post('push-token')
+  registerToken(@Req() req: any, @Body('token') token: string, @Body('platform') platform = 'ios') {
+    return this.notifications.registerToken(req.user.id, token, platform);
+  }
+
+  @Delete('push-token')
+  unregisterToken(@Req() req: any, @Body('token') token: string) {
+    return this.notifications.unregisterToken(req.user.id, token);
+  }
 
   @Get()
   list(@Req() req: any) {
-    return this.notificationsService.list(req.user.userId);
-  }
-
-  @Get('unread-count')
-  unreadCount(@Req() req: any) {
-    return this.notificationsService.unreadCount(req.user.userId);
+    return this.notifications.list(req.user.id);
   }
 
   @Post('read-all')
-  markAllRead(@Req() req: any) {
-    return this.notificationsService.markAllRead(req.user.userId);
-  }
-
-  @Post(':id/read')
-  markRead(@Param('id') id: string) {
-    return this.notificationsService.markRead(id);
+  async markAllRead(@Req() req: any) {
+    await this.notifications.markAllRead(req.user.id);
+    return { ok: true };
   }
 }

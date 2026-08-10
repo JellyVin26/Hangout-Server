@@ -42,6 +42,7 @@ async function main() {
   await prisma.memoryReaction.deleteMany();
   await prisma.memory.deleteMany();
   await prisma.upload.deleteMany();
+  await prisma.pushToken.deleteMany();
   await prisma.message.deleteMany();
   await prisma.vote.deleteMany();
   await prisma.hangoutInvite.deleteMany();

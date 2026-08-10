@@ -7,12 +7,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateHangoutDto, VoteDto, Visibility } from './dto';
 import { PlacesDiscoveryService } from '../places/places-discovery.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class HangoutsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly discovery: PlacesDiscoveryService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private include = {
@@ -97,9 +99,18 @@ export class HangoutsService {
           : undefined,
       },
       include: this.include,
-    });
-    return hangout;
-  }
+          });
+          // Notify invited users
+          for (const uid of dto.inviteUserIds ?? []) {
+            await this.notifications.notify(
+              uid,
+              'HANGOUT_INVITE',
+              { hangoutId: hangout.id, title: hangout.title, hostId: userId },
+              { title: `${hangout.title}`, body: `You're invited! Tap to join.` },
+            );
+          }
+          return hangout;
+        }
 
   async list(userId: string, scope: 'upcoming' | 'past' = 'upcoming') {
     const now = new Date();

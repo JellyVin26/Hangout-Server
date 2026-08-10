@@ -96,6 +96,20 @@ model User {
   memories         Memory[]
   uploads          Upload[]
   memoryReactions  MemoryReaction[]
+  pushTokens       PushToken[]
+}
+
+// Push tokens for FCM (expo-notifications → Expo push service)
+model PushToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String
+  platform  String   // ios | android
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, token])
 }
 
 // Friends (mutual, confirmed via FriendRequest)
