@@ -6,10 +6,14 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateHangoutDto, VoteDto, Visibility } from './dto';
+import { PlacesDiscoveryService } from '../places/places-discovery.service';
 
 @Injectable()
 export class HangoutsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly discovery: PlacesDiscoveryService,
+  ) {}
 
   private include = {
     destination: true,
@@ -20,14 +24,67 @@ export class HangoutsService {
     _count: { select: { messages: true, votes: true } },
   };
 
+  /** Resolve a place reference (cuid or googlePlaceId) to a local Place row. */
+  private async resolveDestination(ref: string) {
+    const byCuid = await this.prisma.place.findUnique({ where: { id: ref } });
+    if (byCuid) return byCuid;
+    const byGoogleId = await this.prisma.place.findUnique({ where: { googlePlaceId: ref } });
+    if (byGoogleId) return byGoogleId;
+    // Try fetching from Google and upserting as a local Place.
+    if (process.env.GOOGLE_MAPS_API_KEY) {
+      try {
+        const place = await this.discovery.details(ref);
+                if (place?.googlePlaceId) {
+                  const photoUrl = place.photoUrl ?? null;
+                  const category = place.category ?? 'Other';
+                  return this.prisma.place.upsert({
+                    where: { googlePlaceId: place.googlePlaceId },
+                    create: {
+                      googlePlaceId: place.googlePlaceId,
+                      name: place.name,
+                      category,
+                      address: place.address ?? '',
+                                            lat: place.lat ?? 0,
+                                            lng: place.lng ?? 0,
+                                            rating: place.rating ?? 0,
+                                            reviewCount: place.reviewCount ?? 0,
+                                            priceLevel: place.priceLevel ?? 1,
+                                            photoUrl,
+                                          },
+                                          update: {
+                                            name: place.name,
+                                            category,
+                                            address: place.address ?? '',
+                                            lat: place.lat ?? 0,
+                                            lng: place.lng ?? 0,
+                      rating: place.rating ?? 0,
+                      reviewCount: place.reviewCount ?? 0,
+                      priceLevel: place.priceLevel ?? 1,
+                      photoUrl: photoUrl ?? undefined,
+                    },
+                  });
+                }
+      } catch {
+        // fallthrough
+      }
+    }
+    return null;
+  }
+
   async create(userId: string, dto: CreateHangoutDto) {
+    let destinationId: string | null = null;
+    if (dto.destinationId) {
+      const dest = await this.resolveDestination(dto.destinationId);
+      if (!dest) throw new BadRequestException(`Unknown destination: ${dto.destinationId}`);
+      destinationId = dest.id;
+    }
     const hangout = await this.prisma.hangout.create({
       data: {
         title: dto.title,
         description: dto.description,
         startsAt: new Date(dto.startsAt),
         durationMin: dto.durationMin ?? 120,
-        destinationId: dto.destinationId,
+        destinationId,
         visibility: (dto.visibility as Visibility) ?? Visibility.PRIVATE,
         maxParticipants: dto.maxParticipants,
         category: dto.category,
@@ -81,12 +138,12 @@ export class HangoutsService {
     const member = hangout.participants.some((p) => p.userId === userId);
     if (!member) throw new ForbiddenException('Only participants can vote');
 
-    const place = await this.prisma.place.findUnique({ where: { id: dto.placeId } });
+    const place = await this.resolveDestination(dto.placeId);
     if (!place) throw new NotFoundException('Place not found');
 
     const vote = await this.prisma.vote.upsert({
-      where: { hangoutId_placeId_userId: { hangoutId: id, placeId: dto.placeId, userId } },
-      create: { hangoutId: id, placeId: dto.placeId, userId },
+      where: { hangoutId_placeId_userId: { hangoutId: id, placeId: place.id, userId } },
+      create: { hangoutId: id, placeId: place.id, userId },
       update: {},
     });
     return { status: 'voted', vote };
