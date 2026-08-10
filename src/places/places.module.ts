@@ -6,5 +6,6 @@ import { PlacesDiscoveryService } from './places-discovery.service';
 @Module({
   controllers: [PlacesController],
   providers: [PlacesService, PlacesDiscoveryService],
+  exports: [PlacesService, PlacesDiscoveryService],
 })
 export class PlacesModule {}
