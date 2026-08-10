@@ -2,6 +2,7 @@ import { Body, Controller, Get, NotFoundException, Param, Post, Req, Res } from 
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
+import { Public } from '../auth/decorators';
 
 const MAX_BYTES = 6 * 1024 * 1024; // 6 MB cap (Vercel body limit)
 
@@ -11,6 +12,7 @@ export class MediaController {
   constructor(private readonly prisma: PrismaService) {}
 
   /** Public read endpoint so Image <source> works without auth. */
+  @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Fetch an uploaded media asset (public, cache-friendly)' })
   async get(@Param('id') id: string, @Res() res: Response) {
