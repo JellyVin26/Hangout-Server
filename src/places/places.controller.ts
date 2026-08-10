@@ -31,13 +31,7 @@ export class PlacesController {
     const lngNum = lng ? Number(lng) : undefined;
     const takeNum = take ? Number(take) : 20;
 
-    const local = await this.places.search({
-      q,
-      category,
-      lat: latNum,
-      lng: lngNum,
-      take: takeNum,
-    });
+    const local = await this.places.search({ q, category, lat: latNum, lng: lngNum, take: takeNum });
 
     if (q && process.env.GOOGLE_MAPS_API_KEY) {
       try {
@@ -51,10 +45,7 @@ export class PlacesController {
         }
         for (const lp of local) {
           if (lp.googlePlaceId && seen.has(lp.googlePlaceId)) continue;
-          if (!lp.id || !seen.has(lp.id)) {
-            merged.push(lp);
-            if (lp.id) seen.add(lp.id);
-          }
+          merged.push(lp);
         }
         return merged.slice(0, takeNum);
       } catch {
@@ -62,14 +53,6 @@ export class PlacesController {
       }
     }
     return local;
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Get a place with reviews' })
-  async getOne(@Param('id') id: string) {
-    const place = await this.places.findOne(id);
-    if (!place) throw new NotFoundException('Place not found');
-    return place;
   }
 
   @Get('google/photo')
@@ -85,7 +68,14 @@ export class PlacesController {
     if (!upstream.ok) throw new NotFoundException('Photo not available');
     res.setHeader('Content-Type', upstream.headers.get('Content-Type') ?? 'image/jpeg');
     res.setHeader('Cache-Control', 'public, max-age=86400');
-    const buf = Buffer.from(await upstream.arrayBuffer());
-    res.send(buf);
+    res.send(Buffer.from(await upstream.arrayBuffer()));
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a place with reviews' })
+  async getOne(@Param('id') id: string) {
+    const place = await this.places.findOne(id);
+    if (!place) throw new NotFoundException('Place not found');
+    return place;
   }
 }
