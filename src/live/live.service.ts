@@ -88,7 +88,24 @@ export class LiveService {
         locationSessions: { where: { endedAt: null } },
       },
     });
-    return hangout;
+
+    if (!hangout) return null;
+
+    // Real ETA per participant: haversine distance to the destination at a
+    // default walking pace (5 km/h). Only when we have both fixes.
+    const dest = hangout.destination;
+    const walkSpeedKmh = 5;
+    const participants = hangout.participants.map((pp) => {
+      let distanceKm: number | null = null;
+      let etaMin: number | null = null;
+      if (dest && pp.lastLat != null && pp.lastLng != null && dest.lat && dest.lng) {
+        distanceKm = distKm(pp.lastLat, pp.lastLng, dest.lat, dest.lng);
+        etaMin = Math.max(1, Math.round((distanceKm / walkSpeedKmh) * 60));
+      }
+      return { ...pp, distanceKm, etaMin };
+    });
+
+    return { ...hangout, participants };
   }
 }
 
