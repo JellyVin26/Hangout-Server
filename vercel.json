@@ -8,7 +8,7 @@
     }
   },
   "crons": [
-    { "path": "/notifications/reminders/run?secret=cron", "schedule": "* * * * *" }
+    { "path": "/notifications/reminders/run", "schedule": "0 9 * * *" }
   ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index" }

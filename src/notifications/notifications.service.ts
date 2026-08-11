@@ -108,11 +108,11 @@ export class NotificationsService {
 
     const lookAhead = new Date(now.getTime() + 26 * 60 * 60 * 1000); // cover 24h window
     const windowsByHangout = await this.prisma.hangout.findMany({
-      where: { status: { not: 'CANCELLED' }, at: { gte: now, lte: lookAhead } },
+      where: { startsAt: { gte: now, lte: lookAhead } },
       select: {
         id: true,
         title: true,
-        at: true,
+        startsAt: true,
         hostId: true,
         participants: { where: { status: { not: 'DECLINED' } }, select: { userId: true } },
       },
@@ -120,7 +120,7 @@ export class NotificationsService {
 
     for (const h of windowsByHangout) {
       scanned++;
-      const minutesAway = (h.at.getTime() - now.getTime()) / 60000;
+      const minutesAway = (h.startsAt.getTime() - now.getTime()) / 60000;
       for (const window of REMINDER_WINDOWS) {
         if (minutesAway > window + 5 || minutesAway < window - 5) continue; // 5-min slack
         for (const p of h.participants) {
