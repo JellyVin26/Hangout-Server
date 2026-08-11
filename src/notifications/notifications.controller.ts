@@ -1,5 +1,6 @@
-import { Body, Controller, Delete, Get, Post, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, Query, Req } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
+import { Public } from '../auth/decorators';
 
 const userId = (req: any) => req.user?.userId ?? req.user?.id;
 
@@ -26,5 +27,18 @@ export class NotificationsController {
   async markAllRead(@Req() req: any) {
     await this.notifications.markAllRead(userId(req));
     return { ok: true };
+  }
+
+  /**
+   * Vercel Cron hits this every minute. Secured by CRON_SECRET (query string).
+   * Returns counts so the cron log shows what happened.
+   */
+  @Public()
+  @Post('reminders/run')
+  async runReminders(@Query('secret') secret?: string) {
+    if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+      return { ok: false, reason: 'unauthorized' };
+    }
+    return this.notifications.runReminders();
   }
 }

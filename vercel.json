@@ -7,6 +7,9 @@
       "maxDuration": 60
     }
   },
+  "crons": [
+    { "path": "/notifications/reminders/run?secret=cron", "schedule": "* * * * *" }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index" }
   ]

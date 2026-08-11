@@ -1,6 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+/** Reminder windows in minutes. */
+const REMINDER_WINDOWS = [
+  24 * 60,   // 24h
+  2 * 60,    // 2h
+  30,        // 30m
+  15,        // 15m
+  5,         // 5m
+];
+
 /**
  * Push notifications via the Expo push service (https://exp.host/--/api/v2/push/send).
  * Devices register an ExpoPushToken (from expo-notifications) — no Firebase/GCM config needed.
@@ -83,6 +92,66 @@ export class NotificationsService {
       where: { userId, read: false },
       data: { read: true },
     });
+  }
+
+  /**
+   * Schedule reminder notifications for all non-cancelled hangouts starting soon.
+   * Walks REMINDER_WINDOWS and emits one notify() per (user, hangout, window) that hasn't fired.
+   * Idempotent via ReminderDelivery unique constraint.
+   *
+   * Triggered by Vercel Cron (every minute); safe to re-run repeatedly.
+   */
+  async runReminders(now = new Date()): Promise<{ scanned: number; fired: number; skipped: number }> {
+    let scanned = 0;
+    let fired = 0;
+    let skipped = 0;
+
+    const lookAhead = new Date(now.getTime() + 26 * 60 * 60 * 1000); // cover 24h window
+    const windowsByHangout = await this.prisma.hangout.findMany({
+      where: { status: { not: 'CANCELLED' }, at: { gte: now, lte: lookAhead } },
+      select: {
+        id: true,
+        title: true,
+        at: true,
+        hostId: true,
+        participants: { where: { status: { not: 'DECLINED' } }, select: { userId: true } },
+      },
+    });
+
+    for (const h of windowsByHangout) {
+      scanned++;
+      const minutesAway = (h.at.getTime() - now.getTime()) / 60000;
+      for (const window of REMINDER_WINDOWS) {
+        if (minutesAway > window + 5 || minutesAway < window - 5) continue; // 5-min slack
+        for (const p of h.participants) {
+          if (p.userId === h.hostId) continue; // host already knows
+          try {
+            await this.prisma.reminderDelivery.create({
+              data: { userId: p.userId, hangoutId: h.id, windowMin: window },
+            });
+            const isLast = window <= 5;
+            const title = isLast ? 'Starts soon' : `Reminder: ${h.title}`;
+            const body = this.timeUntilLabel(window) + ` · ${h.title}`;
+            await this.notify(p.userId, 'EVENT_REMINDER', { hangoutId: h.id, windowMin: window }, {
+              title,
+              body,
+              push: true,
+            });
+            fired++;
+          } catch (err: any) {
+            // unique-key collision = already fired for this window — expected on cron re-runs
+            if (err?.code === 'P2002') skipped++;
+            else throw err;
+          }
+        }
+      }
+    }
+    return { scanned, fired, skipped };
+  }
+
+  private timeUntilLabel(min: number): string {
+    if (min >= 60) return `${Math.round(min / 60)}h away`;
+    return `${min}m away`;
   }
 
   /** Create an in-app Notification row (Activity tab) + optionally push. */

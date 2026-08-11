@@ -56,6 +56,7 @@ async function main() {
   await prisma.friend.deleteMany();
   await prisma.userBadge.deleteMany();
   await prisma.userInterest.deleteMany();
+  await prisma.reminderDelivery.deleteMany();
   await prisma.notification.deleteMany();
   await prisma.place.deleteMany();
   await prisma.badge.deleteMany();

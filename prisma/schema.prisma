@@ -97,6 +97,7 @@ model User {
   uploads          Upload[]
   memoryReactions  MemoryReaction[]
   pushTokens       PushToken[]
+  reminderDeliveries ReminderDelivery[]
 }
 
 // Push tokens for FCM (expo-notifications → Expo push service)
@@ -110,6 +111,20 @@ model PushToken {
   user User @relation(fields: [userId], references: [id])
 
   @@unique([userId, token])
+}
+
+// Dedupe reminder notifications by user/hangout/window.
+model ReminderDelivery {
+  id        String   @id @default(cuid())
+  userId    String
+  hangoutId String
+  windowMin Int
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  hangout Hangout @relation(fields: [hangoutId], references: [id])
+
+  @@unique([userId, hangoutId, windowMin])
 }
 
 // Friends (mutual, confirmed via FriendRequest)
@@ -211,6 +226,7 @@ model Hangout {
   invites      HangoutInvite[]
   memories     Memory[]
   locationSessions LocationSession[]
+  reminderDeliveries ReminderDelivery[]
 }
 
 model Participant {
