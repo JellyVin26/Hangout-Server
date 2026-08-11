@@ -12,5 +12,3 @@ jobs:
         run: |
           curl -sS -m 30 -o /dev/null -w "HTTP %{http_code}\n" \
             "https://hangout-server-neon.vercel.app/notifications/reminders/run?secret=${{ secrets.CRON_SECRET }}"
-        env:
-          CRON_SECRET_PLACEHOLDER: ${{ secrets.CRON_SECRET }}
