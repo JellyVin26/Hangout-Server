@@ -1,14 +1,14 @@
 // Prisma schema — Hangout backend
 // All 14 PRD entities: User, Friend, Hangout, Participant, Place, Vote,
 // Message, Notification, Photo, LocationSession, Review, Badge, Interest, Category.
-// SQLite used for local dev; Postgres for prod (swap the datasource URL).
+// Postgres schema generated from schema.prisma for Vercel deploys.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

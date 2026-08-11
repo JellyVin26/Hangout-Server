@@ -101,7 +101,7 @@ export class NotificationsService {
    *
    * Triggered by Vercel Cron (every minute); safe to re-run repeatedly.
    */
-  async runReminders(now = new Date()): Promise<{ scanned: number; fired: number; skipped: number }> {
+  async runReminders(now = new Date()): Promise<{ scanned: number; fired: number; skipped: number; finalized: number }> {
     let scanned = 0;
     let fired = 0;
     let skipped = 0;
@@ -146,7 +146,50 @@ export class NotificationsService {
         }
       }
     }
-    return { scanned, fired, skipped };
+    const finalized = await this.finalizeVotes(now);
+    return { scanned, fired, skipped, finalized };
+  }
+
+  private async finalizeVotes(now: Date): Promise<number> {
+    const hangouts = await this.prisma.hangout.findMany({
+      where: { startsAt: { lte: now }, destinationId: null },
+      select: {
+        id: true,
+        title: true,
+        hostId: true,
+        participants: { where: { status: { not: 'DECLINED' } }, select: { userId: true } },
+      },
+      take: 50,
+    });
+
+    let finalized = 0;
+    for (const h of hangouts) {
+      const votes = await this.prisma.vote.groupBy({
+        by: ['placeId'],
+        where: { hangoutId: h.id },
+        _count: { _all: true },
+        orderBy: { _count: { placeId: 'desc' } },
+        take: 1,
+      });
+      const winner = votes[0]?.placeId;
+      if (!winner) continue;
+
+      const updated = await this.prisma.hangout.updateMany({
+        where: { id: h.id, destinationId: null },
+        data: { destinationId: winner },
+      });
+      if (updated.count === 0) continue;
+      finalized++;
+
+      for (const p of h.participants) {
+        await this.notify(p.userId, 'DESTINATION_FINALIZED', { hangoutId: h.id, placeId: winner, title: h.title }, {
+          title: 'Destination picked',
+          body: `${h.title} has a final place.`,
+          push: p.userId !== h.hostId,
+        });
+      }
+    }
+    return finalized;
   }
 
   private timeUntilLabel(min: number): string {
