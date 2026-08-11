@@ -1,9 +1,4 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateHangoutDto, VoteDto, Visibility } from './dto';
 import { PlacesDiscoveryService } from '../places/places-discovery.service';
@@ -134,14 +129,37 @@ export class HangoutsService {
 
   async join(userId: string, id: string) {
     const hangout = await this.getOne(id);
-    if (hangout.maxParticipants && hangout.participants.length >= hangout.maxParticipants) {
+    const joinedCount = hangout.participants.filter((p) => p.status !== 'DECLINED').length;
+    if (hangout.maxParticipants && joinedCount >= hangout.maxParticipants) {
       throw new BadRequestException('Hangout is full');
     }
-    const existing = hangout.participants.find((p) => p.userId === userId);
-    if (existing) return { status: 'already-joined' };
-
-    await this.prisma.participant.create({ data: { hangoutId: id, userId } });
+    await this.prisma.participant.upsert({
+      where: { hangoutId_userId: { hangoutId: id, userId } },
+      create: { hangoutId: id, userId, status: 'JOINED' },
+      update: { status: 'JOINED' },
+    });
+    if (userId !== hangout.hostId) {
+      await this.notifications.notify(hangout.hostId, 'FRIEND_JOINED', { hangoutId: id, userId, title: hangout.title }, {
+        title: 'RSVP updated',
+        body: `Someone joined ${hangout.title}`,
+      });
+    }
     return { status: 'joined' };
+  }
+
+  async decline(userId: string, id: string) {
+    const hangout = await this.getOne(id);
+    if (hangout.hostId === userId) throw new BadRequestException('Host cannot decline their own hangout');
+    await this.prisma.participant.upsert({
+      where: { hangoutId_userId: { hangoutId: id, userId } },
+      create: { hangoutId: id, userId, status: 'DECLINED' },
+      update: { status: 'DECLINED', sharing: 'NONE', attendance: 'NOT_STARTED' },
+    });
+    await this.notifications.notify(hangout.hostId, 'FRIEND_DECLINED', { hangoutId: id, userId, title: hangout.title }, {
+      title: 'RSVP updated',
+      body: `Someone declined ${hangout.title}`,
+    });
+    return { status: 'declined' };
   }
 
   async vote(userId: string, id: string, dto: VoteDto) {

@@ -42,9 +42,16 @@ export class HangoutsController {
 
   @Post(':id/join')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Join a hangout' })
+  @ApiOperation({ summary: 'Join / accept an invite' })
   join(@Req() req: any, @Param('id') id: string) {
     return this.hangouts.join(req.user.userId, id);
+  }
+
+  @Post(':id/decline')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Decline an invite' })
+  decline(@Req() req: any, @Param('id') id: string) {
+    return this.hangouts.decline(req.user.userId, id);
   }
 
   @Post(':id/vote')
