@@ -87,16 +87,21 @@ export class HangoutsService {
         category: dto.category,
         hostId: userId,
         participants: {
-          create: [{ userId }],
+          create: [
+            { userId, status: 'JOINED' },
+            ...((dto.inviteUserIds ?? [])
+              .filter((uid) => uid !== userId)
+              .map((uid) => ({ userId: uid, status: 'INVITED' as const }))),
+          ],
         },
         invites: dto.inviteUserIds?.length
-          ? { create: dto.inviteUserIds.map((uid) => ({ userId: uid })) }
+          ? { create: dto.inviteUserIds.filter((uid) => uid !== userId).map((uid) => ({ userId: uid })) }
           : undefined,
       },
       include: this.include,
           });
           // Notify invited users
-          for (const uid of dto.inviteUserIds ?? []) {
+          for (const uid of (dto.inviteUserIds ?? []).filter((uid) => uid !== userId)) {
             await this.notifications.notify(
               uid,
               'HANGOUT_INVITE',
