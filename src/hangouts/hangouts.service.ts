@@ -202,7 +202,16 @@ export class HangoutsService {
   async cancel(userId: string, id: string) {
     const hangout = await this.getOne(id);
     if (hangout.hostId !== userId) throw new ForbiddenException('Only the host can cancel');
-    await this.prisma.hangout.delete({ where: { id } });
+    const tx = [];
+    tx.push(this.prisma.reminderDelivery.deleteMany({ where: { hangoutId: id } }));
+    tx.push(this.prisma.locationSession.deleteMany({ where: { hangoutId: id } }));
+    tx.push(this.prisma.vote.deleteMany({ where: { hangoutId: id } }));
+    tx.push(this.prisma.memory.deleteMany({ where: { hangoutId: id } }));
+    tx.push(this.prisma.message.deleteMany({ where: { hangoutId: id } }));
+    tx.push(this.prisma.hangoutInvite.deleteMany({ where: { hangoutId: id } }));
+    tx.push(this.prisma.participant.deleteMany({ where: { hangoutId: id } }));
+    tx.push(this.prisma.hangout.delete({ where: { id } }));
+    await this.prisma.$transaction(tx);
     return { status: 'cancelled' };
   }
 }
