@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Query, NotFoundException, InternalServerErrorException, HttpCode, HttpStatus, Res } from '@nestjs/common';
+import { Public } from '../auth/decorators';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { PlacesService } from './places.service';
@@ -13,6 +14,7 @@ export class PlacesController {
     private readonly discovery: PlacesDiscoveryService,
   ) {}
 
+  @Public()
   @Get()
   @ApiOperation({ summary: 'List / search places' })
   @ApiQuery({ name: 'q', required: false })
