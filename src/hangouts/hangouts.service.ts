@@ -18,6 +18,7 @@ export class HangoutsService {
     participants: {
       include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
     },
+    votes: { include: { place: true }, orderBy: { createdAt: 'asc' as const } },
     _count: { select: { messages: true, votes: true } },
   };
 
@@ -171,6 +172,9 @@ export class HangoutsService {
     const hangout = await this.getOne(id);
     const member = hangout.participants.some((p) => p.userId === userId);
     if (!member) throw new ForbiddenException('Only participants can vote');
+    if (hangout.destinationId || hangout.startsAt <= new Date()) {
+      throw new BadRequestException('Voting is closed');
+    }
 
     const place = await this.resolveDestination(dto.placeId);
     if (!place) throw new NotFoundException('Place not found');
