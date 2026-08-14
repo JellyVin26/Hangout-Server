@@ -12,6 +12,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { MemoriesModule } from './memories/memories.module';
 import { DiscoveryModule } from './discovery/discovery.module';
 import { UploadsModule } from './uploads/uploads.module';
+import { PostHogModule } from './posthog/posthog.module';
 import { AppController } from './app.controller';
 import { SwaggerController } from './swagger.controller';
 
@@ -30,6 +31,7 @@ import { SwaggerController } from './swagger.controller';
     MemoriesModule,
     DiscoveryModule,
     UploadsModule,
+    PostHogModule,
   ],
   controllers: [AppController, SwaggerController],
 })
