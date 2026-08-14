@@ -49,6 +49,21 @@ export class ChatService {
         include: { author: { select: { id: true, username: true, displayName: true, avatarUrl: true } } },
       });
 
+      // Sync participant attendance status if this is a check-in message
+      const lower = payload.body.toLowerCase();
+      let attendanceUpdate: 'ON_THE_WAY' | 'ARRIVED' | null = null;
+      if (lower.includes('arrived') || lower.includes("i'm here") || lower.includes('im here')) {
+        attendanceUpdate = 'ARRIVED';
+      } else if (lower.includes('on my way') || lower.includes('on the way') || lower.includes('running late')) {
+        attendanceUpdate = 'ON_THE_WAY';
+      }
+      if (attendanceUpdate) {
+        await this.prisma.participant.updateMany({
+          where: { hangoutId, userId },
+          data: { attendance: attendanceUpdate },
+        }).catch(() => undefined);
+      }
+
       // Notify other participants
       for (const p of hangout.participants) {
         if (p.userId !== userId) {
