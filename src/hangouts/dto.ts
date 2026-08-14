@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsDateString, IsNumber, Min, Max, IsEnum, IsArray } from 'class-validator';
+import { IsString, IsOptional, IsDateString, IsNumber, Min, Max, IsEnum, IsArray, MinLength } from 'class-validator';
 
 export enum Visibility {
   PRIVATE = 'PRIVATE',
@@ -10,6 +10,7 @@ export enum Visibility {
 export class CreateHangoutDto {
   @ApiProperty({ example: 'Coffee & Catch Up' })
   @IsString()
+  @MinLength(1)
   title: string;
 
   @ApiPropertyOptional({ example: 'Come hungry for pastries' })
