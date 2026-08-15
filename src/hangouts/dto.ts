@@ -34,6 +34,12 @@ export class CreateHangoutDto {
   @IsString()
   destinationId?: string;
 
+  @ApiPropertyOptional({ example: ['place-id-1', 'place-id-2'] })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  candidatePlaceIds?: string[];
+
   @ApiPropertyOptional({ enum: Visibility, default: 'PRIVATE' })
   @IsOptional()
   @IsEnum(Visibility)

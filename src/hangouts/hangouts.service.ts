@@ -71,11 +71,23 @@ export class HangoutsService {
 
   async create(userId: string, dto: CreateHangoutDto) {
     let destinationId: string | null = null;
+    const candidateIds: string[] = [];
     if (dto.destinationId) {
       const dest = await this.resolveDestination(dto.destinationId);
       if (!dest) throw new BadRequestException(`Unknown destination: ${dto.destinationId}`);
       destinationId = dest.id;
+      candidateIds.push(dest.id);
     }
+    if (dto.candidatePlaceIds?.length) {
+      const resolved = await Promise.all(dto.candidatePlaceIds.map((id) => this.resolveDestination(id)));
+      const bad = resolved.findIndex((r) => !r);
+      if (bad !== -1) throw new BadRequestException(`Unknown destination: ${dto.candidatePlaceIds[bad]}`);
+      const ids = resolved.map((r) => r!.id);
+      candidateIds.push(...ids);
+      if (ids.length === 1) destinationId = ids[0];
+      else destinationId = null;
+    }
+
     const hangout = await this.prisma.hangout.create({
       data: {
         title: dto.title,
@@ -95,6 +107,9 @@ export class HangoutsService {
               .map((uid) => ({ userId: uid, status: 'INVITED' as const }))),
           ],
         },
+        votes: candidateIds.length > 1
+          ? { create: candidateIds.slice(0, 1).map((pid) => ({ placeId: pid, userId })) }
+          : undefined,
         invites: dto.inviteUserIds?.length
           ? { create: dto.inviteUserIds.filter((uid) => uid !== userId).map((uid) => ({ userId: uid })) }
           : undefined,
