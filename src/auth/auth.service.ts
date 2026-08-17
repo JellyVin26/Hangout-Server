@@ -51,6 +51,7 @@ export class AuthService {
         badges: { include: { badge: true } },
         friends: { select: { friend: { select: { id: true, username: true, displayName: true, avatarUrl: true } } }, take: 50 },
         favoritePlaces: { include: { place: true }, take: 20 },
+        _count: { select: { hangoutsJoined: true, favoritePlaces: true } },
       },
     });
     return this.safe(user, { interests: user.interests.map(i => i.interest.name), badges: user.badges.map(b => b.badge.key), friends: user.friends.map(f => f.friend) });
