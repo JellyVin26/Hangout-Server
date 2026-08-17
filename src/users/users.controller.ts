@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, NotFoundException } from '@nestjs/common';
+import { Body, Controller, Get, NotFoundException, Param, Patch, Post, Query, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 
@@ -7,6 +7,12 @@ import { UsersService } from './users.service';
 @Controller('users')
 export class UsersController {
   constructor(private readonly users: UsersService) {}
+
+  @Post('me')
+  @ApiOperation({ summary: 'Update my profile (displayName, bio, avatarUrl)' })
+  updateMe(@Req() req: any, @Body() body: { displayName?: string; bio?: string; avatarUrl?: string }) {
+    return this.users.updateMe(req.user.userId, body);
+  }
 
   @Get('search')
   @ApiOperation({ summary: 'Search users by username / display name' })
